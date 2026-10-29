@@ -3,7 +3,7 @@ import { z } from "zod";
 export const MAX_STOCK = 2_147_483_647;
 const nonnegativeInteger = z.number().int().min(0).max(MAX_STOCK);
 const partDetails = {
-  partCode: z.string().trim().min(1, "Enter a part code").max(60).toUpperCase(),
+  partCode: z.string().trim().toUpperCase().min(1, "Enter a part code").max(60),
   name: z.string().trim().min(1, "Enter a part name").max(120),
   unitPriceMinor: nonnegativeInteger,
   lowStockThreshold: nonnegativeInteger,

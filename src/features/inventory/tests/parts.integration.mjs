@@ -59,12 +59,15 @@ test("inventory API and PostgreSQL integrity", async (t) => {
     });
     await t.test("server rejects malformed, unknown, fractional, negative and empty input", async () => {
       const part = await create();
-      for (const patch of [{}, { quantity: 99 }, { stockAdjustment: 0.5 }, { unitPriceMinor: -1 }, { name: " " }, { lowStockThreshold: 2147483648 }, { partCode: "x".repeat(61) }]) {
+      for (const patch of [{}, { quantity: 99 }, { stockAdjustment: 0.5 }, { unitPriceMinor: -1 }, { name: " " }, { lowStockThreshold: 2147483648 }, { partCode: "x".repeat(61) }, { partCode: "ß".repeat(60) }]) {
         assert.equal((await request(`/parts/${part.id}`, "PATCH", patch)).status, 400);
       }
       for (const quantity of [-1, 0.1, "2", null]) {
         assert.equal((await request("/parts", "POST", { partCode: randomUUID(), name: "Invalid", quantity, unitPriceMinor: 0, lowStockThreshold: 0 })).status, 400);
       }
+      const expandedCode = await request("/parts", "POST", { partCode: "ß".repeat(60), name: "Invalid expanded code", quantity: 0, unitPriceMinor: 0, lowStockThreshold: 0 });
+      assert.equal(expandedCode.status, 400);
+      assert.ok(expandedCode.body.error.fieldErrors.partCode);
       const malformed = await fetch(`${baseUrl}/api/parts`, { method: "POST", body: "{", headers: { "Content-Type": "application/json" } });
       assert.equal(malformed.status, 400);
       assert.equal((await request("/parts/not-a-uuid", "PATCH", { name: "Invalid" })).status, 400);
