@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TicketStatus {
+  NEW
+  IN_PROGRESS
+  READY_FOR_PICKUP
+  DELIVERED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Ticket {
+  id                 String       @id @default(uuid()) @db.Uuid
+  ticketNumber       String       @unique @default(dbgenerated("('RF-' || lpad(nextval('ticket_number_seq')::text, 6, '0'))"))
+  customerName       String       @db.VarChar(120)
+  customerPhone      String       @db.VarChar(25)
+  deviceName         String       @db.VarChar(120)
+  deviceType         String       @db.VarChar(80)
+  problemDescription String       @db.VarChar(3000)
+  priority           Priority     @default(MEDIUM)
+  status             TicketStatus @default(NEW)
+  technicianId       String?      @db.Uuid
+  technician         Technician?  @relation(fields: [technicianId], references: [id], onDelete: Restrict)
+  registeredAt       DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime     @updatedAt @db.Timestamptz(3)
+  allocations        Allocation[]
+
+  @@index([status])
+  @@index([technicianId])
+  @@index([customerName])
+}
+
+model Technician {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @db.VarChar(120)
+  phone     String?  @db.VarChar(25)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  tickets   Ticket[]
+}
+
+model Part {
+  id                String       @id @default(uuid()) @db.Uuid
+  partCode          String       @unique @db.VarChar(60)
+  name              String       @db.VarChar(120)
+  quantity          Int          @default(0)
+  unitPriceMinor    Int
+  lowStockThreshold Int          @default(0)
+  createdAt         DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime     @updatedAt @db.Timestamptz(3)
+  allocations       Allocation[]
+}
+
+model Allocation {
+  id             String   @id @default(uuid()) @db.Uuid
+  ticketId       String   @db.Uuid
+  partId         String   @db.Uuid
+  quantity       Int
+  unitPriceMinor Int
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  ticket         Ticket   @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  part           Part     @relation(fields: [partId], references: [id], onDelete: Restrict)
+
+  @@index([ticketId])
+  @@index([partId])
+}
